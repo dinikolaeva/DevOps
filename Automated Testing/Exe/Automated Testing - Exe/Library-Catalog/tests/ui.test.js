@@ -16,7 +16,9 @@ const submitButtonSelector = 'input[type="submit"]';
 
 const emailInputSelector = 'input[name="email"]';
 const passwordInputSelector = 'input[name="password"]';
+const repeatPasswordInputSelector = 'input[name="confirm-pass"]';
 
+//By default, dialogs are auto-dismissed by Playwright!!! 
 
 // Verifying links
 test('Verify "All books" is visible', async ({ page }) => {
@@ -148,4 +150,111 @@ test('Submit the form with empty password input field', async ({ page }) => {
     await page.$(loginButtonSelector);
 
     expect(page.url()).toBe(baseUrl + 'login');
+});
+
+// Verifying Register page
+
+test('Register with valid credentials', async ({ page }) => {
+    await page.goto(baseUrl + 'register');
+    await page.fill(emailInputSelector, 'registerUser@abv.bg');
+    await page.fill(passwordInputSelector, password);
+    await page.fill(repeatPasswordInputSelector, password);
+    await page.click(submitButtonSelector);
+
+    await page.$(allBoosLinkSelector);
+
+    //check link
+    expect(page.url()).toBe(baseUrl + 'catalog');
+
+    // check button
+    const logoutButton = await page.$(logoutButtonSelector);
+    const isLogoutButtonVisible = await logoutButton.isVisible();
+    expect(isLogoutButtonVisible).toBe(true);
+});
+
+test('Register with empty input fields', async ({ page }) => {
+    await page.goto(baseUrl + 'register');
+    await page.click(submitButtonSelector);
+
+    page.on('dialog', async dialog => {
+        expect(dialog.type()).toContain('alert');
+        expect(dialog.message()).toContain('All fields are required!');
+        await dialog.accept();
+    });
+
+    await page.$(loginButtonSelector);
+
+    expect(page.url()).toBe(baseUrl + 'register');
+});
+
+test('Register with with empty email input field', async ({ page }) => {
+    await page.goto(baseUrl + 'register');
+    await page.fill(passwordInputSelector, password);
+    await page.fill(repeatPasswordInputSelector, password);
+    await page.click(submitButtonSelector);
+
+    await page.$(allBoosLinkSelector);
+
+    //check link
+    page.on('dialog', async dialog => {
+        expect(dialog.type()).toContain('alert');
+        expect(dialog.message()).toContain('All fields are required!');
+        await dialog.accept();
+    });
+
+    await page.$(loginButtonSelector);
+
+    expect(page.url()).toBe(baseUrl + 'register');
+});
+
+test('Register with empty password input field', async ({ page }) => {
+    await page.goto(baseUrl + 'register');
+    await page.fill(emailInputSelector, 'email@abv.bg');
+    await page.fill(repeatPasswordInputSelector, password);
+    await page.click(submitButtonSelector);
+
+    page.on('dialog', async dialog => {
+        expect(dialog.type()).toContain('alert');
+        expect(dialog.message()).toContain('All fields are required!');
+        await dialog.accept();
+    });
+
+    await page.$(loginButtonSelector);
+
+    expect(page.url()).toBe(baseUrl + 'register');
+});
+
+test('Register with empty confirm password input field', async ({ page }) => {
+    await page.goto(baseUrl + 'register');
+    await page.fill(emailInputSelector, 'emptyConfirm@abv.bg');
+    await page.fill(repeatPasswordInputSelector, password);
+    await page.click(submitButtonSelector);
+
+    page.on('dialog', async dialog => {
+        expect(dialog.type()).toContain('alert');
+        expect(dialog.message()).toContain('All fields are required!');
+        await dialog.accept();
+    });
+
+    await page.$(loginButtonSelector);
+
+    expect(page.url()).toBe(baseUrl + 'register');
+});
+
+test('Register with different password and confirm password input field', async ({ page }) => {
+    await page.goto(baseUrl + 'register');
+    await page.fill(emailInputSelector, 'diffPass@abv.bg');
+    await page.fill(passwordInputSelector, password);
+    await page.fill(repeatPasswordInputSelector,'456789');
+    await page.click(submitButtonSelector);
+
+    page.on('dialog', async dialog => {
+        expect(dialog.type()).toContain('alert');
+        expect(dialog.message()).toContain('Passwords don\'t match!');
+        await dialog.accept();
+    });
+
+    await page.$(loginButtonSelector);
+
+    expect(page.url()).toBe(baseUrl + 'register');
 });
