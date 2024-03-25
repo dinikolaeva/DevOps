@@ -24,6 +24,9 @@ const titleSelector = '#title';
 const descriptionSelector = '#description';
 const imageSelector = '#image';
 const typeSelector = '#type';
+const dashboardSelector = '.dashboard';
+const bookElementsSelector = '.other-books-list li';
+const noBooksSelector = '.no-books';
 
 //By default, dialogs are auto-dismissed by Playwright!!! 
 
@@ -376,3 +379,42 @@ test('Add book with empty image feld', async ({ page }) => {
 
     expect(page.url()).toBe(baseUrl + 'create');
 });
+
+// All Books page tests
+
+test('Login and verify that all books are displayed', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, user);
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.waitForSelector(dashboardSelector);
+
+    const bookElements = await page.$$(bookElementsSelector);
+
+    expect(bookElements.length).toBeGreaterThan(0);
+});
+
+test('Login and verify that no books are displayed', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, user);
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.waitForSelector(dashboardSelector);
+
+    const noBooksMessage = await page.textContent(noBooksSelector);
+
+    expect(noBooksMessage).toBe('No books in database!');
+});
+
