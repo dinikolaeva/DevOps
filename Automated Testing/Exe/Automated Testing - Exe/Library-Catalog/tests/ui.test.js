@@ -197,7 +197,7 @@ test('Register with empty input fields', async ({ page }) => {
     expect(page.url()).toBe(baseUrl + 'register');
 });
 
-test('Register with with empty email input field', async ({ page }) => {
+test('Register with empty email input field', async ({ page }) => {
     await page.goto(baseUrl + 'register');
     await page.fill(passwordInputSelector, password);
     await page.fill(repeatPasswordInputSelector, password);
@@ -400,6 +400,7 @@ test('Login and verify that all books are displayed', async ({ page }) => {
     expect(bookElements.length).toBeGreaterThan(0);
 });
 
+// Must be deleted all books from the database first to pass this test
 test('Login and verify that no books are displayed', async ({ page }) => {
     await page.goto(baseUrl + 'login');
 
