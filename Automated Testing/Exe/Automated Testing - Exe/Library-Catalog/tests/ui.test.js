@@ -14,6 +14,10 @@ const logoutButtonSelector = '#logoutBtn';
 const registerButtonSelector = 'a[href="/register"]';
 const submitButtonSelector = 'input[type="submit"]';
 const createBookSubmitButtonSelector = '#create-form input[type="submit"]';
+const otherBooksButtonSelector = '.otherBooks a.button';
+const editButtonSelector = '.actions a:nth-child(1)';
+const deleteButtonSelector = 'a[href="javascript:void(0)"]';
+const likeButtonSelector = '.actions a[href="javascript:void(0)"]';
 
 const emailInputSelector = 'input[name="email"]';
 const passwordInputSelector = 'input[name="password"]';
@@ -27,6 +31,13 @@ const typeSelector = '#type';
 const dashboardSelector = '.dashboard';
 const bookElementsSelector = '.other-books-list li';
 const noBooksSelector = '.no-books';
+const otherBooksSelector = '.otherBooks';
+const bookInformationSelector = '.book-information';
+const detailsPageTitleSelector = '.book-information h3';
+const detailsPageTypeSelector = '.book-information .type';
+const detailsPageImageSelector = '.img img';
+const bookDescriptionTitleSelector = '.book-description h3';
+const bookDescriptionContentSelector = '.book-description p';
 
 //By default, dialogs are auto-dismissed by Playwright!!! 
 
@@ -164,7 +175,8 @@ test('Submit the form with empty password input field', async ({ page }) => {
 
 // Verifying Register page
 
-test('Register with valid credentials', async ({ page }) => {
+// Once run this test the username will be in the database so that the test will be skipped if all tests run without rerun the server
+test.skip('Register with valid credentials', async ({ page }) => {
     await page.goto(baseUrl + 'register');
     await page.fill(emailInputSelector, 'testRegister@abv.bg');
     await page.fill(passwordInputSelector, password);
@@ -400,8 +412,8 @@ test('Login and verify that all books are displayed', async ({ page }) => {
     expect(bookElements.length).toBeGreaterThan(0);
 });
 
-// Must be deleted all books from the database first to pass this test
-test('Login and verify that no books are displayed', async ({ page }) => {
+// Must be deleted all books from the database first to pass this test. It will be skipped until then.
+test.skip('Login and verify that no books are displayed', async ({ page }) => {
     await page.goto(baseUrl + 'login');
 
     await page.fill(emailInputSelector, user);
@@ -419,3 +431,175 @@ test('Login and verify that no books are displayed', async ({ page }) => {
     expect(noBooksMessage).toBe('No books in database!');
 });
 
+// Details page tests
+
+test('Login and navigate to Details page', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, user);
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.click(allBoosLinkSelector);
+    await page.waitForSelector(otherBooksSelector);
+    await page.click(otherBooksButtonSelector);
+    await page.waitForSelector(bookInformationSelector);
+
+    const detailsPageTitle = await page.textContent(detailsPageTitleSelector);
+
+    expect(detailsPageTitle).toBe('Test Book');
+});
+
+test('Login and verify that guest user sees the details button and button works correctly', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, 'john@abv.bg');
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.click(allBoosLinkSelector);
+    await page.waitForSelector(otherBooksSelector);
+    await page.click(otherBooksButtonSelector);
+    await page.waitForSelector(bookInformationSelector);
+
+    const detailsPageTitle = await page.textContent(detailsPageTitleSelector);
+
+    expect(detailsPageTitle).toBe('Test Book');
+});
+
+test('Login and verify that all info is displayed correctly', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, 'john@abv.bg');
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.click(allBoosLinkSelector);
+    await page.waitForSelector(otherBooksSelector);
+    await page.click(otherBooksButtonSelector);
+    await page.waitForSelector(bookInformationSelector);
+
+    const detailsPageTitle = await page.textContent(detailsPageTitleSelector);
+    const detailsPageType = await page.textContent(detailsPageTypeSelector);
+    const imageHandle = await page.$(detailsPageImageSelector);
+    const imageSrc = await imageHandle.getAttribute('src');
+    const bookDescriptionTitle = await page.textContent(bookDescriptionTitleSelector);
+    const bookDescriptionContent = await page.textContent(bookDescriptionContentSelector);
+
+    expect(detailsPageTitle).toBe('Test Book');
+    expect(detailsPageType).toBe('Type: Other');
+    expect(imageSrc).toContain('https://shorturl.at/cjmy0');
+    expect(bookDescriptionTitle).toBe('Description:');
+    expect(bookDescriptionContent).toBe('Test book description');
+});
+
+test('Login and verify that Edit and Delete buttons are visible for creator', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, user);
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.click(allBoosLinkSelector);
+    await page.waitForSelector(otherBooksSelector);
+    await page.click(otherBooksButtonSelector);
+    await page.waitForSelector(bookInformationSelector);
+
+    const editButton = await page.$(editButtonSelector);
+    const editTextContent = await editButton.textContent();
+
+    const deleteButton = await page.$(deleteButtonSelector);
+    const isDeleteButtonVisile = await deleteButton.isVisible();
+
+    expect(editTextContent).toBe('Edit');
+    expect(isDeleteButtonVisile).toBe(true);
+});
+
+test('Login and verify that Edit and Delete buttons are not visible for non-creators', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, 'john@abv.bg');
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.click(allBoosLinkSelector);
+    await page.waitForSelector(otherBooksSelector);
+    await page.click(otherBooksButtonSelector);
+    await page.waitForSelector(bookInformationSelector);
+
+    const editButton = await page.$(editButtonSelector);
+    const editButtonTextContent = await editButton.textContent();
+
+
+    const deleteButton = await page.$(deleteButtonSelector);
+    const deleteButtonTextContent = await deleteButton.textContent();
+
+    expect(editButtonTextContent).not.toBe('Edit');
+    expect(deleteButtonTextContent).not.toBe('Delete');
+});
+
+test('Login and verify that Like button is not visible for creator', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, user);
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.click(allBoosLinkSelector);
+    await page.waitForSelector(otherBooksSelector);
+    await page.click(otherBooksButtonSelector);
+    await page.waitForSelector(bookInformationSelector);
+
+    const likeButton = await page.$(likeButtonSelector);
+    const likeButtonTextContent = await likeButton.textContent();
+
+    expect(likeButtonTextContent).not.toBe('Like');
+
+});
+
+test('Login and verify that Like button is visible for non-creator', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, 'john@abv.bg');
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    await page.click(allBoosLinkSelector);
+    await page.waitForSelector(otherBooksSelector);
+    await page.click(otherBooksButtonSelector);
+    await page.waitForSelector(bookInformationSelector);
+
+    const likeButton = await page.$(likeButtonSelector);
+    const likeButtonTextContent = await likeButton.textContent();
+
+    expect(likeButtonTextContent).toBe('Like');
+
+});
