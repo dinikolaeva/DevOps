@@ -603,3 +603,42 @@ test('Login and verify that Like button is visible for non-creator', async ({ pa
     expect(likeButtonTextContent).toBe('Like');
 
 });
+
+// Logout functionality tests
+
+test('Verify that Logout button is visible', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, 'john@abv.bg');
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    const logoutButton = await page.$(logoutButtonSelector);
+    const isLogoutButtonVisible = await logoutButton.isVisible();
+
+    expect(isLogoutButtonVisible).toBe(true);
+
+});
+
+test('Verify redirection of Logout link after user login', async ({ page }) => {
+    await page.goto(baseUrl + 'login');
+
+    await page.fill(emailInputSelector, user);
+    await page.fill(passwordInputSelector, password);
+
+    await Promise.all([
+        page.click(submitButtonSelector),
+        page.waitForURL(baseUrl + 'catalog')
+    ]);
+
+    const logoutButton = await page.$(logoutButtonSelector);
+    await logoutButton.click();
+
+    const redirectURL = page.url();
+    expect(redirectURL).toBe(baseUrl + 'catalog');
+
+});
